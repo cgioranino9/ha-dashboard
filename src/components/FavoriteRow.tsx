@@ -4,7 +4,7 @@ import { useState } from "react";
 import { mutate } from "swr";
 import type { DashboardEntity } from "@/lib/types";
 import { callService } from "@/lib/useDashboard";
-import { getEntityIcon, isEntityActive, formatEntityValue } from "@/lib/entityDisplay";
+import { getEntityIcon, isEntityActive, formatEntityValue, getDomainAccent } from "@/lib/entityDisplay";
 import { IconBadge } from "@/components/EntityCard";
 
 const TOGGLE_DOMAINS = new Set(["light", "switch", "fan"]);
@@ -46,7 +46,7 @@ export function FavoriteRow({
       disabled={pending}
       className={`w-full flex items-center gap-3 rounded-2xl p-3 text-left transition-colors border ${
         selected
-          ? "bg-blue-500/10 border-blue-400/40"
+          ? `${getDomainAccent(entity.domain).soft} ${getDomainAccent(entity.domain).border}`
           : "bg-neutral-900 border-white/5 hover:bg-neutral-800"
       } ${pending ? "opacity-60" : ""}`}
     >

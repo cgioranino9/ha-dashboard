@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import type { DashboardEntity } from "@/lib/types";
 import { callService } from "@/lib/useDashboard";
-import { getEntityIcon, isEntityActive, formatEntityValue } from "@/lib/entityDisplay";
+import { getEntityIcon, isEntityActive, formatEntityValue, getDomainAccent } from "@/lib/entityDisplay";
 import { IconBadge } from "@/components/EntityCard";
 
 function refresh() {
@@ -40,33 +40,48 @@ async function run(fn: () => Promise<void>) {
 function TempRing({ pct, size = 220, gapDeg = 90 }: { pct: number; size?: number; gapDeg?: number }) {
   const stroke = 16;
   const r = (size - stroke) / 2;
+  const cx = size / 2;
+  const cy = size / 2;
   const c = 2 * Math.PI * r;
   const trackLen = ((360 - gapDeg) / 360) * c;
-  const valueLen = Math.max(0, Math.min(1, pct)) * trackLen;
+  const clampedPct = Math.max(0, Math.min(1, pct));
+  const valueLen = clampedPct * trackLen;
   const rotate = 90 + gapDeg / 2;
+  const theta = (valueLen / c) * 2 * Math.PI;
+  const handleX = cx + r * Math.cos(theta);
+  const handleY = cy + r * Math.sin(theta);
   return (
     <svg width={size} height={size} style={{ transform: `rotate(${rotate}deg)` }}>
+      <defs>
+        <linearGradient id="climate-ring-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#fbbf24" />
+          <stop offset="100%" stopColor="#ea580c" />
+        </linearGradient>
+      </defs>
       <circle
-        cx={size / 2}
-        cy={size / 2}
+        cx={cx}
+        cy={cy}
         r={r}
-        stroke="rgba(255,255,255,0.1)"
+        stroke="rgba(255,255,255,0.08)"
         strokeWidth={stroke}
         fill="none"
         strokeDasharray={`${trackLen} ${c - trackLen}`}
         strokeLinecap="round"
       />
       <circle
-        cx={size / 2}
-        cy={size / 2}
+        cx={cx}
+        cy={cy}
         r={r}
-        stroke="white"
+        stroke="url(#climate-ring-gradient)"
         strokeWidth={stroke}
         fill="none"
         strokeDasharray={`${valueLen} ${c - valueLen}`}
         strokeLinecap="round"
         style={{ transition: "stroke-dasharray 200ms ease" }}
       />
+      {clampedPct > 0 && (
+        <circle cx={handleX} cy={handleY} r={stroke / 2 + 3} fill="white" stroke="#ea580c" strokeWidth={3} />
+      )}
     </svg>
   );
 }
@@ -77,12 +92,14 @@ function ModeButton({
   disabled,
   onClick,
   label,
+  activeClass,
 }: {
   icon: LucideIcon;
   active: boolean;
   disabled?: boolean;
   onClick: () => void;
   label: string;
+  activeClass: string;
 }) {
   return (
     <button
@@ -91,7 +108,7 @@ function ModeButton({
       title={label}
       aria-label={label}
       className={`flex-1 rounded-full py-3 flex items-center justify-center transition-colors ${
-        active ? "bg-blue-500 text-white" : "text-neutral-500 hover:text-neutral-300"
+        active ? `${activeClass} text-white` : "text-neutral-500 hover:text-neutral-300"
       }`}
     >
       <Icon size={20} strokeWidth={1.75} />
@@ -258,7 +275,7 @@ function ClimateFocus({ entity }: { entity: DashboardEntity }) {
           <div className="relative flex items-center justify-center">
             <TempRing pct={pct} />
             <div className="absolute flex flex-col items-center">
-              <span className="text-xs font-medium tracking-wide text-blue-300 uppercase">
+              <span className="text-xs font-medium tracking-wide text-orange-300 uppercase">
                 {hvacAction ?? entity.state}
               </span>
               <span className="text-4xl font-semibold tabular-nums">
@@ -297,7 +314,7 @@ function ClimateFocus({ entity }: { entity: DashboardEntity }) {
 
       {!isOff && isRange && (
         <div className="flex-1 flex flex-col items-center justify-center gap-6">
-          <span className="text-xs font-medium tracking-wide text-blue-300 uppercase">
+          <span className="text-xs font-medium tracking-wide text-orange-300 uppercase">
             {hvacAction ?? entity.state}
           </span>
           <div className="flex items-center gap-10">
@@ -363,6 +380,7 @@ function ClimateFocus({ entity }: { entity: DashboardEntity }) {
                 disabled={pending}
                 onClick={setMode(mode)}
                 label={mode.replace("_", " ")}
+                activeClass={getDomainAccent("climate").solid}
               />
             )
           )}
@@ -379,7 +397,7 @@ function ClimateFocus({ entity }: { entity: DashboardEntity }) {
               disabled={pending}
               className={`rounded-full px-3 py-1 text-xs capitalize ${
                 fanMode === mode
-                  ? "bg-blue-500/20 text-blue-300"
+                  ? getDomainAccent("climate").soft
                   : "bg-white/5 text-neutral-500 hover:bg-white/10"
               }`}
             >
@@ -455,7 +473,7 @@ function LightFocus({ entity }: { entity: DashboardEntity }) {
           onClick={toggle}
           disabled={pending}
           className={`w-32 h-32 rounded-full flex items-center justify-center text-lg font-medium transition-colors ${
-            active ? "bg-blue-500 text-white" : "bg-white/5 text-neutral-400 hover:bg-white/10"
+            active ? `${getDomainAccent("light").solid} text-white` : "bg-white/5 text-neutral-400 hover:bg-white/10"
           }`}
         >
           {active ? "On" : "Off"}
@@ -474,7 +492,7 @@ function LightFocus({ entity }: { entity: DashboardEntity }) {
               onChange={(e) => setDragPct(Number(e.target.value))}
               onMouseUp={commitBrightness}
               onTouchEnd={commitBrightness}
-              className="w-full accent-blue-500"
+              className="w-full accent-amber-500"
             />
           </div>
         )}
@@ -503,7 +521,9 @@ function ToggleFocus({ entity }: { entity: DashboardEntity }) {
           onClick={toggle}
           disabled={pending}
           className={`w-32 h-32 rounded-full flex items-center justify-center text-lg font-medium transition-colors ${
-            active ? "bg-blue-500 text-white" : "bg-white/5 text-neutral-400 hover:bg-white/10"
+            active
+              ? `${getDomainAccent(entity.domain).solid} text-white`
+              : "bg-white/5 text-neutral-400 hover:bg-white/10"
           }`}
         >
           {active ? "On" : "Off"}
@@ -611,7 +631,9 @@ function MediaFocus({ entity }: { entity: DashboardEntity }) {
           onClick={toggle}
           disabled={pending}
           className={`w-20 h-20 rounded-full flex items-center justify-center transition-colors ${
-            active ? "bg-blue-500 text-white" : "bg-white/5 text-neutral-400 hover:bg-white/10"
+            active
+              ? `${getDomainAccent("media_player").solid} text-white`
+              : "bg-white/5 text-neutral-400 hover:bg-white/10"
           }`}
         >
           {active ? <Pause size={28} /> : <Play size={28} />}

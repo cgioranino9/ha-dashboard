@@ -31,10 +31,19 @@ export type DashboardArea = {
   entities: DashboardEntity[];
 };
 
+export type ForecastDay = {
+  datetime: string;
+  condition: string;
+  temperature: number | null;
+  templow: number | null;
+};
+
 export type DashboardData = {
   areas: DashboardArea[];
   unassigned: DashboardEntity[];
   scenes: DashboardEntity[];
   weather: DashboardEntity | null;
+  forecast: ForecastDay[] | null;
+  sun: DashboardEntity | null;
   updatedAt: number;
 };

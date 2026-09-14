@@ -5,7 +5,7 @@ import { mutate } from "swr";
 import { ArrowUp, ArrowDown, Square, Minus, Plus, Play, Pause, type LucideIcon } from "lucide-react";
 import type { DashboardEntity } from "@/lib/types";
 import { callService } from "@/lib/useDashboard";
-import { getEntityIcon, isEntityActive, formatEntityValue } from "@/lib/entityDisplay";
+import { getEntityIcon, isEntityActive, formatEntityValue, getDomainAccent } from "@/lib/entityDisplay";
 
 const DASHBOARD_KEY = "/api/dashboard";
 
@@ -35,14 +35,15 @@ export function getCardSpan(entity: DashboardEntity): string {
   return "col-span-1";
 }
 
-function cardClasses(active: boolean) {
-  return active
-    ? "bg-gradient-to-br from-blue-600 to-blue-500 text-white border-blue-400/40 shadow-lg shadow-blue-950/40"
-    : "bg-neutral-900 text-neutral-200 border-white/5 hover:bg-neutral-800";
+function cardClasses(domain: string, active: boolean) {
+  if (!active) return "bg-neutral-900 text-neutral-200 border-white/5 hover:bg-neutral-800";
+  const a = getDomainAccent(domain);
+  return `bg-gradient-to-br ${a.gradient} text-white ${a.border} shadow-lg ${a.shadow}`;
 }
 
-function selectedRing(selected?: boolean) {
-  return selected ? "ring-2 ring-offset-2 ring-offset-neutral-950 ring-blue-400" : "";
+function selectedRing(domain: string, selected?: boolean) {
+  if (!selected) return "";
+  return `ring-2 ring-offset-2 ring-offset-neutral-950 ${getDomainAccent(domain).ring}`;
 }
 
 export function IconBadge({ icon: Icon, active }: { icon: LucideIcon; active: boolean }) {
@@ -114,7 +115,7 @@ function ToggleCard({ entity, onSelect, selected }: EntityCardProps) {
     <button
       onClick={toggle}
       disabled={pending}
-      className={`${cardShell} text-left ${cardClasses(active)} ${selectedRing(selected)} ${pending ? "opacity-60" : ""}`}
+      className={`${cardShell} text-left ${cardClasses(entity.domain, active)} ${selectedRing(entity.domain, selected)} ${pending ? "opacity-60" : ""}`}
     >
       <div className="flex items-start justify-between">
         <IconBadge icon={Icon} active={active} />
@@ -148,11 +149,10 @@ function LockCard({ entity, onSelect, selected }: EntityCardProps) {
     <button
       onClick={toggle}
       disabled={pending}
-      className={`${cardShell} text-left ${
-        isLocked
-          ? "bg-neutral-900 text-neutral-200 border-white/5 hover:bg-neutral-800"
-          : "bg-gradient-to-br from-red-600 to-red-500 text-white border-red-400/40 shadow-lg shadow-red-950/40"
-      } ${selectedRing(selected)} ${pending ? "opacity-60" : ""}`}
+      className={`${cardShell} text-left ${cardClasses("lock", !isLocked)} ${selectedRing(
+        "lock",
+        selected
+      )} ${pending ? "opacity-60" : ""}`}
     >
       <IconBadge icon={Icon} active={!isLocked} />
       <div>
@@ -180,7 +180,7 @@ function CoverCard({ entity, onSelect, selected }: EntityCardProps) {
   };
 
   return (
-    <div className={`${cardShell} ${cardClasses(active)} ${selectedRing(selected)}`}>
+    <div className={`${cardShell} ${cardClasses(entity.domain, active)} ${selectedRing(entity.domain, selected)}`}>
       <div className="flex items-start justify-between">
         <IconBadge icon={Icon} active={active} />
       </div>
@@ -244,7 +244,7 @@ function ClimateCard({ entity, onSelect, selected }: EntityCardProps) {
   return (
     <div
       onClick={() => onSelect?.(entity)}
-      className={`${cardShell} ${cardClasses(active)} ${selectedRing(selected)} cursor-pointer`}
+      className={`${cardShell} ${cardClasses(entity.domain, active)} ${selectedRing(entity.domain, selected)} cursor-pointer`}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -305,7 +305,7 @@ function MediaPlayerCard({ entity, onSelect, selected }: EntityCardProps) {
     <button
       onClick={toggle}
       disabled={pending}
-      className={`${cardShell} text-left ${cardClasses(active)} ${selectedRing(selected)} ${pending ? "opacity-60" : ""}`}
+      className={`${cardShell} text-left ${cardClasses(entity.domain, active)} ${selectedRing(entity.domain, selected)} ${pending ? "opacity-60" : ""}`}
     >
       <div className="flex items-start justify-between">
         <IconBadge icon={Icon} active={active} />
@@ -331,8 +331,10 @@ function ReadOnlyCard({ entity, onSelect, selected }: EntityCardProps) {
     <button
       onClick={() => onSelect?.(entity)}
       className={`${cardShell} min-h-[112px] text-left ${
-        active ? cardClasses(true) : "bg-neutral-900/60 text-neutral-400 border-white/5 hover:bg-neutral-900"
-      } ${selectedRing(selected)}`}
+        active
+          ? cardClasses(entity.domain, true)
+          : "bg-neutral-900/60 text-neutral-400 border-white/5 hover:bg-neutral-900"
+      } ${selectedRing(entity.domain, selected)}`}
     >
       <IconBadge icon={Icon} active={active} />
       <div>

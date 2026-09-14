@@ -6,7 +6,7 @@ import {
   type Connection,
   type HassEntities,
 } from "home-assistant-js-websocket";
-import type { DashboardArea, DashboardData, DashboardEntity, HassEntity } from "./types";
+import type { DashboardArea, DashboardData, DashboardEntity, ForecastDay, HassEntity } from "./types";
 
 const DOMAIN_ALLOWLIST = new Set([
   "light",
@@ -23,6 +23,7 @@ const DOMAIN_ALLOWLIST = new Set([
 ]);
 
 const REGISTRY_REFRESH_MS = 5 * 60 * 1000;
+const FORECAST_REFRESH_MS = 20 * 60 * 1000;
 
 type EntityRegistryEntry = {
   entity_id: string;
@@ -46,11 +47,19 @@ type Registries = {
   fetchedAt: number;
 };
 
+type ForecastCache = {
+  entityId: string;
+  days: ForecastDay[];
+  fetchedAt: number;
+};
+
 type GlobalState = {
   connectionPromise: Promise<Connection> | null;
   entities: HassEntities;
   registries: Registries | null;
   registriesPromise: Promise<Registries> | null;
+  forecast: ForecastCache | null;
+  forecastPromise: Promise<ForecastCache> | null;
 };
 
 const globalForHa = globalThis as unknown as { __haState?: GlobalState };
@@ -60,6 +69,8 @@ const state: GlobalState = globalForHa.__haState ?? {
   entities: {},
   registries: null,
   registriesPromise: null,
+  forecast: null,
+  forecastPromise: null,
 };
 globalForHa.__haState = state;
 
@@ -155,6 +166,61 @@ async function getRegistries(conn: Connection): Promise<Registries> {
   return state.registriesPromise!;
 }
 
+type RawForecastEntry = {
+  datetime: string;
+  condition: string;
+  temperature?: number;
+  templow?: number;
+};
+
+async function fetchForecast(conn: Connection, entityId: string): Promise<ForecastCache> {
+  const response = await conn.sendMessagePromise<
+    Record<string, { forecast: RawForecastEntry[] }>
+  >({
+    type: "weather/get_forecasts",
+    entity_id: [entityId],
+    forecast_type: "daily",
+  });
+
+  const raw = response[entityId]?.forecast ?? [];
+  const days: ForecastDay[] = raw.slice(0, 4).map((d) => ({
+    datetime: d.datetime,
+    condition: d.condition,
+    temperature: d.temperature ?? null,
+    templow: d.templow ?? null,
+  }));
+
+  return { entityId, days, fetchedAt: Date.now() };
+}
+
+async function getForecast(conn: Connection, entityId: string): Promise<ForecastDay[]> {
+  const isStale =
+    !state.forecast ||
+    state.forecast.entityId !== entityId ||
+    Date.now() - state.forecast.fetchedAt > FORECAST_REFRESH_MS;
+
+  if (isStale && !state.forecastPromise) {
+    state.forecastPromise = fetchForecast(conn, entityId)
+      .then((cache) => {
+        state.forecast = cache;
+        state.forecastPromise = null;
+        return cache;
+      })
+      .catch((err) => {
+        state.forecastPromise = null;
+        throw err;
+      });
+  }
+
+  try {
+    const cache = state.forecast ?? (await state.forecastPromise);
+    return cache!.days;
+  } catch (err) {
+    console.error("[ha] forecast fetch failed:", err);
+    return [];
+  }
+}
+
 function humanizeEntityId(entityId: string): string {
   const objectId = entityId.split(".")[1] ?? entityId;
   return objectId
@@ -171,10 +237,17 @@ export async function getDashboardData(): Promise<DashboardData> {
   const unassigned: DashboardEntity[] = [];
   const scenes: DashboardEntity[] = [];
   let weather: DashboardEntity | null = null;
+  let sun: DashboardEntity | null = null;
 
   for (const raw of Object.values(state.entities) as HassEntity[]) {
     const domain = raw.entity_id.split(".")[0];
-    if (domain !== "scene" && domain !== "weather" && !DOMAIN_ALLOWLIST.has(domain)) continue;
+    if (
+      domain !== "scene" &&
+      domain !== "weather" &&
+      domain !== "sun" &&
+      !DOMAIN_ALLOWLIST.has(domain)
+    )
+      continue;
 
     const entity: DashboardEntity = {
       entityId: raw.entity_id,
@@ -189,6 +262,8 @@ export async function getDashboardData(): Promise<DashboardData> {
       scenes.push(entity);
     } else if (domain === "weather") {
       if (!weather) weather = entity;
+    } else if (domain === "sun") {
+      if (!sun) sun = entity;
     } else if (entity.areaId) {
       const bucket = areaBuckets.get(entity.areaId) ?? [];
       bucket.push(entity);
@@ -209,7 +284,9 @@ export async function getDashboardData(): Promise<DashboardData> {
   unassigned.sort((a, b) => a.name.localeCompare(b.name));
   scenes.sort((a, b) => a.name.localeCompare(b.name));
 
-  return { areas, unassigned, scenes, weather, updatedAt: Date.now() };
+  const forecast = weather ? await getForecast(conn, weather.entityId) : null;
+
+  return { areas, unassigned, scenes, weather, forecast, sun, updatedAt: Date.now() };
 }
 
 export async function callService(
