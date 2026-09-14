@@ -224,8 +224,9 @@ function ClimateCard({ entity, onSelect, selected }: EntityCardProps) {
   const target = entity.attributes.temperature as number | undefined;
   const active = entity.state !== "off";
 
-  const MIN = 16;
-  const MAX = 30;
+  const MIN = (entity.attributes.min_temp as number | undefined) ?? 60;
+  const MAX = (entity.attributes.max_temp as number | undefined) ?? 85;
+  const step = (entity.attributes.target_temp_step as number | undefined) ?? 1;
   const pct = target !== undefined ? Math.min(1, Math.max(0, (target - MIN) / (MAX - MIN))) : 0;
 
   const adjust = (delta: number) => async () => {
@@ -259,7 +260,7 @@ function ClimateCard({ entity, onSelect, selected }: EntityCardProps) {
         {target !== undefined && (
           <div className="flex items-center gap-3">
             <button
-              onClick={adjust(-0.5)}
+              onClick={adjust(-step)}
               disabled={pending}
               className="rounded-full bg-black/20 hover:bg-black/30 p-2.5"
             >
@@ -267,7 +268,7 @@ function ClimateCard({ entity, onSelect, selected }: EntityCardProps) {
             </button>
             <div className="text-2xl font-semibold tabular-nums w-16 text-center">{target}°</div>
             <button
-              onClick={adjust(0.5)}
+              onClick={adjust(step)}
               disabled={pending}
               className="rounded-full bg-black/20 hover:bg-black/30 p-2.5"
             >
