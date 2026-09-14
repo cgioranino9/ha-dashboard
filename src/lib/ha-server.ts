@@ -78,15 +78,23 @@ async function getConnection(): Promise<Connection> {
   if (!state.connectionPromise) {
     const { HA_URL, HA_TOKEN } = getEnv();
     const auth = createLongLivedTokenAuth(HA_URL, HA_TOKEN);
-    state.connectionPromise = createConnection({ auth }).then((conn) => {
-      subscribeEntities(conn, (entities) => {
-        state.entities = entities;
+    state.connectionPromise = createConnection({ auth })
+      .then((conn) => {
+        subscribeEntities(conn, (entities) => {
+          state.entities = entities;
+        });
+        conn.addEventListener("disconnected", () => {
+          console.warn("[ha] websocket disconnected, will auto-reconnect");
+        });
+        return conn;
+      })
+      .catch((err) => {
+        // Don't cache a failed connection attempt — let the next call retry
+        // instead of repeating the same failure forever.
+        state.connectionPromise = null;
+        console.error("[ha] connection failed:", err);
+        throw err;
       });
-      conn.addEventListener("disconnected", () => {
-        console.warn("[ha] websocket disconnected, will auto-reconnect");
-      });
-      return conn;
-    });
   }
   return state.connectionPromise;
 }
