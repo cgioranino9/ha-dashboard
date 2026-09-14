@@ -19,6 +19,14 @@ import {
   DoorOpen,
   Activity,
   Eye,
+  Sun,
+  Moon,
+  Cloud,
+  CloudRain,
+  CloudSnow,
+  CloudLightning,
+  CloudFog,
+  Wind,
   type LucideIcon,
 } from "lucide-react";
 import type { DashboardEntity } from "./types";
@@ -78,6 +86,28 @@ export function getEntityIcon(entity: DashboardEntity): LucideIcon {
     default:
       return Eye;
   }
+}
+
+const WEATHER_ICONS: Record<string, LucideIcon> = {
+  sunny: Sun,
+  "clear-night": Moon,
+  cloudy: Cloud,
+  partlycloudy: Cloud,
+  fog: CloudFog,
+  windy: Wind,
+  "windy-variant": Wind,
+  rainy: CloudRain,
+  pouring: CloudRain,
+  snowy: CloudSnow,
+  "snowy-rainy": CloudSnow,
+  hail: CloudSnow,
+  lightning: CloudLightning,
+  "lightning-rainy": CloudLightning,
+  exceptional: Cloud,
+};
+
+export function getWeatherIcon(condition: string): LucideIcon {
+  return WEATHER_ICONS[condition] ?? Cloud;
 }
 
 export function formatEntityValue(entity: DashboardEntity): string {

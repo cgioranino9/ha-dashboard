@@ -8,12 +8,18 @@ import { useHiddenEntities } from "@/lib/useHiddenEntities";
 import { useFavoriteEntities } from "@/lib/useFavoriteEntities";
 import { EntityCard, getCardSpan } from "@/components/EntityCard";
 import { ScenesRow } from "@/components/ScenesRow";
+import { FocusPanel } from "@/components/FocusPanel";
+import { FavoriteRow } from "@/components/FavoriteRow";
 import { isEntityActive } from "@/lib/entityDisplay";
 import type { DashboardEntity } from "@/lib/types";
 
 const Clock = dynamic(() => import("@/components/Clock").then((m) => m.Clock), {
   ssr: false,
 });
+const WeatherCard = dynamic(
+  () => import("@/components/WeatherCard").then((m) => m.WeatherCard),
+  { ssr: false }
+);
 
 const SUMMARY_DOMAINS = new Set([
   "light",
@@ -46,6 +52,7 @@ export default function Home() {
   const { favorites, toggleFavorite } = useFavoriteEntities();
   const [activeAreaId, setActiveAreaId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [focusedEntityId, setFocusedEntityId] = useState<string | null>(null);
 
   const tabs = useMemo(() => {
     if (!data) return [];
@@ -78,6 +85,20 @@ export default function Home() {
     [allEntities, favorites]
   );
 
+  const defaultFocusEntity = useMemo(() => {
+    const climate = allEntities.find((e) => e.domain === "climate");
+    if (climate) return climate;
+    if (favoriteEntities.length > 0) return favoriteEntities[0];
+    return null;
+  }, [allEntities, favoriteEntities]);
+
+  const focusedEntity = useMemo(() => {
+    if (focusedEntityId) {
+      return allEntities.find((e) => e.entityId === focusedEntityId) ?? defaultFocusEntity;
+    }
+    return defaultFocusEntity;
+  }, [focusedEntityId, allEntities, defaultFocusEntity]);
+
   if (isLoading && !data) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-neutral-950 text-neutral-400">
@@ -97,14 +118,15 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-100 select-none">
-      <div className="max-w-[1600px] mx-auto px-6 sm:px-8 pt-8 pb-10 flex gap-8">
-        <main className="flex-1 min-w-0">
-          <header className="flex items-start justify-between gap-4 mb-6">
-            <div>
-              <h1 className="text-3xl font-semibold">{getGreeting()}</h1>
-              <p className="text-neutral-500 mt-1">{summarizeActivity(allEntities)}</p>
-            </div>
-            <div className="flex items-center gap-4 shrink-0">
+      <div className="max-w-[1800px] mx-auto px-6 sm:px-8 pt-8 pb-10">
+        <header className="flex flex-wrap items-start justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-3xl font-semibold">{getGreeting()}</h1>
+            <p className="text-neutral-500 mt-1">{summarizeActivity(allEntities)}</p>
+          </div>
+          <div className="flex items-start gap-4">
+            {data?.weather && <WeatherCard weather={data.weather} />}
+            <div className="flex items-center gap-3 pt-1">
               <Clock />
               <button
                 onClick={() => setEditing((e) => !e)}
@@ -118,102 +140,121 @@ export default function Home() {
                 {editing ? <Check size={20} /> : <Pencil size={20} />}
               </button>
             </div>
-          </header>
-
-          {data && data.scenes.length > 0 && <ScenesRow scenes={data.scenes} />}
-
-          <nav className="flex gap-2 pb-5 overflow-x-auto">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveAreaId(tab.id)}
-                className={`whitespace-nowrap rounded-full px-5 py-2.5 text-base font-medium transition-colors ${
-                  currentAreaId === tab.id
-                    ? "bg-neutral-100 text-neutral-900"
-                    : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
-                }`}
-              >
-                {tab.name}
-              </button>
-            ))}
-          </nav>
-
-          {tabs.length > 0 && (
-            <div className="flex items-baseline justify-between mb-4 px-1">
-              <h2 className="text-lg font-semibold">{currentAreaName}</h2>
-              <span className="text-sm text-neutral-500">
-                {currentEntities.length} {currentEntities.length === 1 ? "Device" : "Devices"}
-              </span>
-            </div>
-          )}
-
-          {editing && (
-            <p className="pb-3 px-1 text-sm text-neutral-500">
-              Tap the star to pin a card to Favorites, or the eye to hide it. Tap the checkmark
-              when you&apos;re done.
-            </p>
-          )}
-
-          {currentEntities.length === 0 ? (
-            <div className="text-neutral-500 py-12 text-center">
-              {tabs.length === 0 ? "No areas or entities found yet." : "Nothing in this area yet."}
-            </div>
-          ) : (
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-4">
-              {visibleEntities.map((entity) => {
-                const isHidden = hidden.has(entity.entityId);
-                const isFavorite = favorites.has(entity.entityId);
-                return (
-                  <div key={entity.entityId} className={`relative ${getCardSpan(entity)}`}>
-                    <div className={editing ? "pointer-events-none" : ""}>
-                      <EntityCard entity={entity} />
-                    </div>
-                    {editing && (
-                      <div
-                        className={`absolute inset-0 rounded-[28px] flex items-center justify-center gap-3 ${
-                          isHidden ? "bg-neutral-950/80" : "bg-black/55"
-                        }`}
-                      >
-                        <button
-                          onClick={() => toggleFavorite(entity.entityId)}
-                          className={`rounded-full p-3 ${
-                            isFavorite ? "bg-amber-400 text-neutral-900" : "bg-white/10 text-white"
-                          }`}
-                          aria-label={isFavorite ? "Unpin from favorites" : "Pin to favorites"}
-                        >
-                          <Star size={20} fill={isFavorite ? "currentColor" : "none"} />
-                        </button>
-                        <button
-                          onClick={() => toggleHidden(entity.entityId)}
-                          className={`rounded-full p-3 ${
-                            isHidden ? "bg-neutral-700 text-neutral-400" : "bg-white/10 text-white"
-                          }`}
-                          aria-label={isHidden ? "Show card" : "Hide card"}
-                        >
-                          {isHidden ? <EyeOff size={20} /> : <Eye size={20} />}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </main>
-
-        <aside className="hidden lg:flex lg:flex-col gap-3 w-72 shrink-0 pt-[4px]">
-          <div className="flex items-center gap-2 text-sm font-medium text-neutral-400 px-1 h-[52px]">
-            <Star size={16} />
-            Favorites
           </div>
-          {favoriteEntities.length === 0 ? (
-            <div className="text-sm text-neutral-600 px-1">
-              Tap the pencil, then the star on any card to pin it here.
+        </header>
+
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_320px] gap-6 items-start">
+          <div className="min-w-0">
+            {data && data.scenes.length > 0 && <ScenesRow scenes={data.scenes} />}
+
+            <nav className="flex gap-2 pb-5 overflow-x-auto">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveAreaId(tab.id)}
+                  className={`whitespace-nowrap rounded-full px-5 py-2.5 text-base font-medium transition-colors ${
+                    currentAreaId === tab.id
+                      ? "bg-neutral-100 text-neutral-900"
+                      : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+                  }`}
+                >
+                  {tab.name}
+                </button>
+              ))}
+            </nav>
+
+            {tabs.length > 0 && (
+              <div className="flex items-baseline justify-between mb-4 px-1">
+                <h2 className="text-lg font-semibold">{currentAreaName}</h2>
+                <span className="text-sm text-neutral-500">
+                  {currentEntities.length} {currentEntities.length === 1 ? "Device" : "Devices"}
+                </span>
+              </div>
+            )}
+
+            {editing && (
+              <p className="pb-3 px-1 text-sm text-neutral-500">
+                Tap the star to pin a card to Favorites, or the eye to hide it. Tap the checkmark
+                when you&apos;re done.
+              </p>
+            )}
+
+            {currentEntities.length === 0 ? (
+              <div className="text-neutral-500 py-12 text-center">
+                {tabs.length === 0 ? "No areas or entities found yet." : "Nothing in this area yet."}
+              </div>
+            ) : (
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-4">
+                {visibleEntities.map((entity) => {
+                  const isHidden = hidden.has(entity.entityId);
+                  const isFavorite = favorites.has(entity.entityId);
+                  return (
+                    <div key={entity.entityId} className={`relative ${getCardSpan(entity)}`}>
+                      <div className={editing ? "pointer-events-none" : ""}>
+                        <EntityCard
+                          entity={entity}
+                          selected={focusedEntity?.entityId === entity.entityId}
+                          onSelect={(e) => setFocusedEntityId(e.entityId)}
+                        />
+                      </div>
+                      {editing && (
+                        <div
+                          className={`absolute inset-0 rounded-[28px] flex items-center justify-center gap-3 ${
+                            isHidden ? "bg-neutral-950/80" : "bg-black/55"
+                          }`}
+                        >
+                          <button
+                            onClick={() => toggleFavorite(entity.entityId)}
+                            className={`rounded-full p-3 ${
+                              isFavorite ? "bg-amber-400 text-neutral-900" : "bg-white/10 text-white"
+                            }`}
+                            aria-label={isFavorite ? "Unpin from favorites" : "Pin to favorites"}
+                          >
+                            <Star size={20} fill={isFavorite ? "currentColor" : "none"} />
+                          </button>
+                          <button
+                            onClick={() => toggleHidden(entity.entityId)}
+                            className={`rounded-full p-3 ${
+                              isHidden ? "bg-neutral-700 text-neutral-400" : "bg-white/10 text-white"
+                            }`}
+                            aria-label={isHidden ? "Show card" : "Hide card"}
+                          >
+                            {isHidden ? <EyeOff size={20} /> : <Eye size={20} />}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="min-w-0 xl:sticky xl:top-8">
+            <FocusPanel entity={focusedEntity} />
+          </div>
+
+          <aside className="flex flex-col gap-3 min-w-0">
+            <div className="flex items-center gap-2 text-sm font-medium text-neutral-400 px-1 h-9">
+              <Star size={16} />
+              Favorites
             </div>
-          ) : (
-            favoriteEntities.map((entity) => <EntityCard key={entity.entityId} entity={entity} />)
-          )}
-        </aside>
+            {favoriteEntities.length === 0 ? (
+              <div className="text-sm text-neutral-600 px-1">
+                Tap the pencil, then the star on any card to pin it here.
+              </div>
+            ) : (
+              favoriteEntities.map((entity) => (
+                <FavoriteRow
+                  key={entity.entityId}
+                  entity={entity}
+                  selected={focusedEntity?.entityId === entity.entityId}
+                  onSelect={() => setFocusedEntityId(entity.entityId)}
+                />
+              ))
+            )}
+          </aside>
+        </div>
       </div>
     </div>
   );

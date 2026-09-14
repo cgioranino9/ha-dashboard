@@ -41,7 +41,11 @@ function cardClasses(active: boolean) {
     : "bg-neutral-900 text-neutral-200 border-white/5 hover:bg-neutral-800";
 }
 
-function IconBadge({ icon: Icon, active }: { icon: LucideIcon; active: boolean }) {
+function selectedRing(selected?: boolean) {
+  return selected ? "ring-2 ring-offset-2 ring-offset-neutral-950 ring-blue-400" : "";
+}
+
+export function IconBadge({ icon: Icon, active }: { icon: LucideIcon; active: boolean }) {
   return (
     <div
       className={`w-10 h-10 rounded-full flex items-center justify-center ${
@@ -67,31 +71,38 @@ function ToggleSwitch({ on }: { on: boolean }) {
 
 const cardShell = "w-full rounded-[28px] p-5 flex flex-col justify-between min-h-[140px] select-none transition-colors border";
 
-export function EntityCard({ entity }: { entity: DashboardEntity }) {
+export type EntityCardProps = {
+  entity: DashboardEntity;
+  onSelect?: (entity: DashboardEntity) => void;
+  selected?: boolean;
+};
+
+export function EntityCard({ entity, onSelect, selected }: EntityCardProps) {
   switch (entity.domain) {
     case "light":
     case "switch":
     case "fan":
-      return <ToggleCard entity={entity} />;
+      return <ToggleCard entity={entity} onSelect={onSelect} selected={selected} />;
     case "lock":
-      return <LockCard entity={entity} />;
+      return <LockCard entity={entity} onSelect={onSelect} selected={selected} />;
     case "cover":
-      return <CoverCard entity={entity} />;
+      return <CoverCard entity={entity} onSelect={onSelect} selected={selected} />;
     case "climate":
-      return <ClimateCard entity={entity} />;
+      return <ClimateCard entity={entity} onSelect={onSelect} selected={selected} />;
     case "media_player":
-      return <MediaPlayerCard entity={entity} />;
+      return <MediaPlayerCard entity={entity} onSelect={onSelect} selected={selected} />;
     default:
-      return <ReadOnlyCard entity={entity} />;
+      return <ReadOnlyCard entity={entity} onSelect={onSelect} selected={selected} />;
   }
 }
 
-function ToggleCard({ entity }: { entity: DashboardEntity }) {
+function ToggleCard({ entity, onSelect, selected }: EntityCardProps) {
   const active = isEntityActive(entity);
   const Icon = getEntityIcon(entity);
   const [pending, setPending] = useState(false);
 
   const toggle = async () => {
+    onSelect?.(entity);
     setPending(true);
     await run(async () => {
       await callService(entity.domain, active ? "turn_off" : "turn_on", entity.entityId);
@@ -103,7 +114,7 @@ function ToggleCard({ entity }: { entity: DashboardEntity }) {
     <button
       onClick={toggle}
       disabled={pending}
-      className={`${cardShell} text-left ${cardClasses(active)} ${pending ? "opacity-60" : ""}`}
+      className={`${cardShell} text-left ${cardClasses(active)} ${selectedRing(selected)} ${pending ? "opacity-60" : ""}`}
     >
       <div className="flex items-start justify-between">
         <IconBadge icon={Icon} active={active} />
@@ -119,12 +130,13 @@ function ToggleCard({ entity }: { entity: DashboardEntity }) {
   );
 }
 
-function LockCard({ entity }: { entity: DashboardEntity }) {
+function LockCard({ entity, onSelect, selected }: EntityCardProps) {
   const isLocked = entity.state === "locked";
   const Icon = getEntityIcon(entity);
   const [pending, setPending] = useState(false);
 
   const toggle = async () => {
+    onSelect?.(entity);
     setPending(true);
     await run(async () => {
       await callService("lock", isLocked ? "unlock" : "lock", entity.entityId);
@@ -140,7 +152,7 @@ function LockCard({ entity }: { entity: DashboardEntity }) {
         isLocked
           ? "bg-neutral-900 text-neutral-200 border-white/5 hover:bg-neutral-800"
           : "bg-gradient-to-br from-red-600 to-red-500 text-white border-red-400/40 shadow-lg shadow-red-950/40"
-      } ${pending ? "opacity-60" : ""}`}
+      } ${selectedRing(selected)} ${pending ? "opacity-60" : ""}`}
     >
       <IconBadge icon={Icon} active={!isLocked} />
       <div>
@@ -153,12 +165,13 @@ function LockCard({ entity }: { entity: DashboardEntity }) {
   );
 }
 
-function CoverCard({ entity }: { entity: DashboardEntity }) {
+function CoverCard({ entity, onSelect, selected }: EntityCardProps) {
   const [pending, setPending] = useState<string | null>(null);
   const Icon = getEntityIcon(entity);
   const active = isEntityActive(entity);
 
   const act = (service: string) => async () => {
+    onSelect?.(entity);
     setPending(service);
     await run(async () => {
       await callService("cover", service, entity.entityId);
@@ -167,7 +180,7 @@ function CoverCard({ entity }: { entity: DashboardEntity }) {
   };
 
   return (
-    <div className={`${cardShell} ${cardClasses(active)}`}>
+    <div className={`${cardShell} ${cardClasses(active)} ${selectedRing(selected)}`}>
       <div className="flex items-start justify-between">
         <IconBadge icon={Icon} active={active} />
       </div>
@@ -204,7 +217,7 @@ function CoverCard({ entity }: { entity: DashboardEntity }) {
   );
 }
 
-function ClimateCard({ entity }: { entity: DashboardEntity }) {
+function ClimateCard({ entity, onSelect, selected }: EntityCardProps) {
   const [pending, setPending] = useState(false);
   const Icon = getEntityIcon(entity);
   const current = entity.attributes.current_temperature as number | undefined;
@@ -216,6 +229,7 @@ function ClimateCard({ entity }: { entity: DashboardEntity }) {
   const pct = target !== undefined ? Math.min(1, Math.max(0, (target - MIN) / (MAX - MIN))) : 0;
 
   const adjust = (delta: number) => async () => {
+    onSelect?.(entity);
     if (target === undefined) return;
     setPending(true);
     await run(async () => {
@@ -227,7 +241,10 @@ function ClimateCard({ entity }: { entity: DashboardEntity }) {
   };
 
   return (
-    <div className={`${cardShell} ${cardClasses(active)}`}>
+    <div
+      onClick={() => onSelect?.(entity)}
+      className={`${cardShell} ${cardClasses(active)} ${selectedRing(selected)} cursor-pointer`}
+    >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <IconBadge icon={Icon} active={active} />
@@ -268,13 +285,14 @@ function ClimateCard({ entity }: { entity: DashboardEntity }) {
   );
 }
 
-function MediaPlayerCard({ entity }: { entity: DashboardEntity }) {
+function MediaPlayerCard({ entity, onSelect, selected }: EntityCardProps) {
   const active = entity.state === "playing";
   const [pending, setPending] = useState(false);
   const Icon = getEntityIcon(entity);
   const title = entity.attributes.media_title as string | undefined;
 
   const toggle = async () => {
+    onSelect?.(entity);
     setPending(true);
     await run(async () => {
       await callService("media_player", "media_play_pause", entity.entityId);
@@ -286,7 +304,7 @@ function MediaPlayerCard({ entity }: { entity: DashboardEntity }) {
     <button
       onClick={toggle}
       disabled={pending}
-      className={`${cardShell} text-left ${cardClasses(active)} ${pending ? "opacity-60" : ""}`}
+      className={`${cardShell} text-left ${cardClasses(active)} ${selectedRing(selected)} ${pending ? "opacity-60" : ""}`}
     >
       <div className="flex items-start justify-between">
         <IconBadge icon={Icon} active={active} />
@@ -304,12 +322,17 @@ function MediaPlayerCard({ entity }: { entity: DashboardEntity }) {
   );
 }
 
-function ReadOnlyCard({ entity }: { entity: DashboardEntity }) {
+function ReadOnlyCard({ entity, onSelect, selected }: EntityCardProps) {
   const Icon = getEntityIcon(entity);
   const active = isEntityActive(entity);
 
   return (
-    <div className={`${cardShell} min-h-[112px] ${active ? cardClasses(true) : "bg-neutral-900/60 text-neutral-400 border-white/5"}`}>
+    <button
+      onClick={() => onSelect?.(entity)}
+      className={`${cardShell} min-h-[112px] text-left ${
+        active ? cardClasses(true) : "bg-neutral-900/60 text-neutral-400 border-white/5 hover:bg-neutral-900"
+      } ${selectedRing(selected)}`}
+    >
       <IconBadge icon={Icon} active={active} />
       <div>
         <div className="font-medium leading-tight text-sm">{entity.name}</div>
@@ -317,6 +340,6 @@ function ReadOnlyCard({ entity }: { entity: DashboardEntity }) {
           {formatEntityValue(entity)}
         </div>
       </div>
-    </div>
+    </button>
   );
 }

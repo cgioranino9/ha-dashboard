@@ -162,10 +162,11 @@ export async function getDashboardData(): Promise<DashboardData> {
   const areaBuckets = new Map<string, DashboardEntity[]>();
   const unassigned: DashboardEntity[] = [];
   const scenes: DashboardEntity[] = [];
+  let weather: DashboardEntity | null = null;
 
   for (const raw of Object.values(state.entities) as HassEntity[]) {
     const domain = raw.entity_id.split(".")[0];
-    if (domain !== "scene" && !DOMAIN_ALLOWLIST.has(domain)) continue;
+    if (domain !== "scene" && domain !== "weather" && !DOMAIN_ALLOWLIST.has(domain)) continue;
 
     const entity: DashboardEntity = {
       entityId: raw.entity_id,
@@ -178,6 +179,8 @@ export async function getDashboardData(): Promise<DashboardData> {
 
     if (domain === "scene") {
       scenes.push(entity);
+    } else if (domain === "weather") {
+      if (!weather) weather = entity;
     } else if (entity.areaId) {
       const bucket = areaBuckets.get(entity.areaId) ?? [];
       bucket.push(entity);
@@ -198,7 +201,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   unassigned.sort((a, b) => a.name.localeCompare(b.name));
   scenes.sort((a, b) => a.name.localeCompare(b.name));
 
-  return { areas, unassigned, scenes, updatedAt: Date.now() };
+  return { areas, unassigned, scenes, weather, updatedAt: Date.now() };
 }
 
 export async function callService(

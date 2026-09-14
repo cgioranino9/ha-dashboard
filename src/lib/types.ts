@@ -35,5 +35,6 @@ export type DashboardData = {
   areas: DashboardArea[];
   unassigned: DashboardEntity[];
   scenes: DashboardEntity[];
+  weather: DashboardEntity | null;
   updatedAt: number;
 };
