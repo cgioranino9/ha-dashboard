@@ -28,13 +28,38 @@ The `HA_URL`/`HA_TOKEN` are only ever used server-side (in `src/lib/ha-server.ts
 ## Running it on the wall
 
 This app is meant to be reached over your home network, not deployed publicly — that keeps
-your HA token off the public internet. Two easy options:
+your HA token off the public internet.
 
-- **Run it on the same mini PC as Home Assistant** (or any always-on machine on your LAN):
-  `npm run build && npm run start`, then point the tablet's browser at
-  `http://<that machine's IP>:3000`.
-- **Run it locally and use a kiosk browser app** on the wall tablet (e.g. Fully Kiosk Browser
-  on Android) pointed at the same URL, with "keep screen on" enabled.
+Point the wall tablet's kiosk browser (e.g. Fully Kiosk Browser on Android, "keep screen on"
+enabled) at `http://<mini-pc-ip>:3000`.
+
+### Deploying to Home Assistant OS (Docker, no polling)
+
+This repo is deployed on a HAOS mini PC as a plain Docker container built from this repo,
+using the [`Dockerfile`](Dockerfile). There's no background auto-update process — updates are
+a one-shot script you run whenever you want the latest commit deployed.
+
+**One-time setup** on the mini PC (needs a way in — e.g. the "Advanced SSH & Web Terminal"
+add-on's web terminal):
+
+```bash
+# A named volume holds the git clone + .env.local, independent of any add-on's
+# own (ephemeral) filesystem.
+docker volume create ha-dashboard-repo
+
+# Seed the env file into it (edit the values first).
+docker run --rm -v ha-dashboard-repo:/repo alpine sh -c \
+  "printf 'HA_URL=http://<mini-pc-ip>:8123\nHA_TOKEN=<your token>\n' > /repo/.env.local"
+
+# Clone the repo into the same volume.
+docker run --rm --entrypoint sh -v ha-dashboard-repo:/repo alpine/git -c \
+  'cd /repo && git init -q && git remote add origin https://github.com/cgioranino9/ha-dashboard.git && git fetch -q origin main && git checkout -q -B main origin/main'
+```
+
+**Every time you want to deploy the latest commit**, run [`scripts/deploy-on-mini-pc.sh`](scripts/deploy-on-mini-pc.sh)
+on the mini PC. It pulls `main`, rebuilds the image, and swaps the running container — no
+background service, nothing left running afterward. The container itself still runs with
+`--restart unless-stopped`, so it survives reboots; only the *update check* is manual.
 
 ## Project structure
 
