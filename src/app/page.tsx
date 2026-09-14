@@ -145,7 +145,7 @@ export default function Home() {
 
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_320px] gap-6 items-start">
           <div className="min-w-0">
-            {data && data.scenes.length > 0 && <ScenesRow scenes={data.scenes} />}
+            <ScenesRow scenes={data?.scenes ?? []} />
 
             <nav className="flex gap-2 pb-5 overflow-x-auto">
               {tabs.map((tab) => (
