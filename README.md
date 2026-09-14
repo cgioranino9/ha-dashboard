@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Home Assistant Wall Dashboard
 
-## Getting Started
+A custom, touch-friendly wall dashboard for Home Assistant, built with Next.js instead of
+Lovelace YAML. Entities are grouped by HA area automatically; the app polls Home Assistant
+every few seconds and lets you tap lights/switches/locks/covers/climate/media players
+directly from the grid.
 
-First, run the development server:
+## Setup
+
+1. Create a long-lived access token in Home Assistant: click your profile (bottom left) →
+   **Security** → **Long-Lived Access Tokens** → **Create Token**.
+2. Copy `.env.local.example` to `.env.local` and fill in:
+   - `HA_URL` — your Home Assistant instance's local network address, e.g.
+     `http://homeassistant.local:8123` or `http://192.168.1.50:8123`
+   - `HA_TOKEN` — the token from step 1
+3. Install dependencies and run:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The `HA_URL`/`HA_TOKEN` are only ever used server-side (in `src/lib/ha-server.ts` and the
+`/api/*` routes) — they are never sent to the browser.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Running it on the wall
 
-## Learn More
+This app is meant to be reached over your home network, not deployed publicly — that keeps
+your HA token off the public internet. Two easy options:
 
-To learn more about Next.js, take a look at the following resources:
+- **Run it on the same mini PC as Home Assistant** (or any always-on machine on your LAN):
+  `npm run build && npm run start`, then point the tablet's browser at
+  `http://<that machine's IP>:3000`.
+- **Run it locally and use a kiosk browser app** on the wall tablet (e.g. Fully Kiosk Browser
+  on Android) pointed at the same URL, with "keep screen on" enabled.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `src/lib/ha-server.ts` — server-only Home Assistant WebSocket connection, entity/area
+  registry lookup, and service-call helper.
+- `src/app/api/dashboard/route.ts` — returns entities grouped by area as JSON.
+- `src/app/api/service/route.ts` — proxies service calls (toggle a light, set a temperature…).
+- `src/lib/useDashboard.ts` — client-side polling hook (SWR).
+- `src/components/EntityCard.tsx` — per-domain card UI (light, switch, lock, cover, climate,
+  media player, sensors).
+- `src/app/page.tsx` — the dashboard page: area tabs + entity grid.
 
-## Deploy on Vercel
+## Adding more domains / customizing cards
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Add a `case` in the `EntityCard` switch in [`src/components/EntityCard.tsx`](src/components/EntityCard.tsx)
+for any domain you want styled differently — everything else falls back to a generic
+read-only sensor card.
