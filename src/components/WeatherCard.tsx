@@ -37,7 +37,7 @@ export function WeatherCard({
   const sunset = formatTime(sun?.attributes.next_setting as string | undefined);
 
   return (
-    <div className="rounded-[28px] border border-white/5 bg-neutral-900 p-5 w-full sm:w-80 shrink-0">
+    <div className="rounded-[28px] border border-white/5 bg-neutral-900 p-5 w-full">
       <div className="flex items-center justify-between">
         <div>
           <div className="text-sm text-neutral-500">

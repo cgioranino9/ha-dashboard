@@ -1,12 +1,12 @@
 "use client";
 
-import { Home, Zap, Star, Settings, HomeIcon } from "lucide-react";
+import { Home, LayoutGrid, Star, Settings, HomeIcon } from "lucide-react";
 
-export type DashboardView = "home" | "energy" | "favorites" | "settings";
+export type DashboardView = "home" | "rooms" | "favorites" | "settings";
 
 const ITEMS: { view: DashboardView; icon: typeof Home; label: string }[] = [
   { view: "home", icon: Home, label: "Home" },
-  { view: "energy", icon: Zap, label: "Energy" },
+  { view: "rooms", icon: LayoutGrid, label: "Rooms" },
   { view: "favorites", icon: Star, label: "Favorites" },
   { view: "settings", icon: Settings, label: "Settings" },
 ];

@@ -182,6 +182,16 @@ export function getDomainAccent(domain: string): DomainAccent {
   return ACCENTS[domain] ?? ACCENTS.switch;
 }
 
+export function formatSince(lastChanged: string): string {
+  const then = new Date(lastChanged).getTime();
+  if (Number.isNaN(then)) return "";
+  const minutes = Math.max(0, Math.round((Date.now() - then) / 60000));
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (hours === 0) return `${mins}min`;
+  return `${hours}hr ${mins}min`;
+}
+
 export function formatEntityValue(entity: DashboardEntity): string {
   const unit = entity.attributes.unit_of_measurement as string | undefined;
   if (entity.domain === "sensor") {

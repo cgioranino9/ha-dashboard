@@ -20,6 +20,7 @@ const DOMAIN_ALLOWLIST = new Set([
   "sensor",
   "vacuum",
   "humidifier",
+  "camera",
 ]);
 
 const REGISTRY_REFRESH_MS = 5 * 60 * 1000;
@@ -256,6 +257,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       state: raw.state,
       attributes: raw.attributes,
       areaId: registries.entityAreaMap.get(raw.entity_id) ?? null,
+      lastChanged: raw.last_changed,
     };
 
     if (domain === "scene") {
@@ -309,4 +311,23 @@ export async function callService(
     const text = await res.text().catch(() => "");
     throw new Error(`HA service call failed (${res.status}): ${text}`);
   }
+}
+
+export async function getCameraImage(
+  entityId: string
+): Promise<{ body: ArrayBuffer; contentType: string }> {
+  const { HA_URL, HA_TOKEN } = getEnv();
+  const res = await fetch(`${HA_URL}/api/camera_proxy/${entityId}`, {
+    headers: { Authorization: `Bearer ${HA_TOKEN}` },
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(`Camera fetch failed (${res.status})`);
+  }
+
+  return {
+    body: await res.arrayBuffer(),
+    contentType: res.headers.get("content-type") ?? "image/jpeg",
+  };
 }

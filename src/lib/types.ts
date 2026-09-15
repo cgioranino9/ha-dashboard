@@ -23,6 +23,7 @@ export type DashboardEntity = {
   state: string;
   attributes: HassEntity["attributes"];
   areaId: string | null;
+  lastChanged: string;
 };
 
 export type DashboardArea = {

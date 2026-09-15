@@ -11,9 +11,11 @@ import { ScenesRow } from "@/components/ScenesRow";
 import { FocusPanel } from "@/components/FocusPanel";
 import { FavoriteRow } from "@/components/FavoriteRow";
 import { Sidebar, type DashboardView } from "@/components/Sidebar";
-import { EnergyView } from "@/components/EnergyView";
 import { FavoritesView } from "@/components/FavoritesView";
 import { SettingsView } from "@/components/SettingsView";
+import { EnergyCard } from "@/components/EnergyCard";
+import { MyDeviceGrid } from "@/components/MyDeviceGrid";
+import { MediaMiniCard } from "@/components/MediaMiniCard";
 import { isEntityActive } from "@/lib/entityDisplay";
 import type { DashboardEntity } from "@/lib/types";
 
@@ -22,6 +24,10 @@ const Clock = dynamic(() => import("@/components/Clock").then((m) => m.Clock), {
 });
 const WeatherCard = dynamic(
   () => import("@/components/WeatherCard").then((m) => m.WeatherCard),
+  { ssr: false }
+);
+const HeroCameraCard = dynamic(
+  () => import("@/components/HeroCameraCard").then((m) => m.HeroCameraCard),
   { ssr: false }
 );
 
@@ -36,7 +42,7 @@ const SUMMARY_DOMAINS = new Set([
 
 const VIEW_TITLES: Record<DashboardView, string> = {
   home: "",
-  energy: "Energy",
+  rooms: "Rooms",
   favorites: "Favorites",
   settings: "Settings",
 };
@@ -102,12 +108,20 @@ export default function Home() {
     [allEntities, hidden]
   );
 
+  const climateEntity = useMemo(() => allEntities.find((e) => e.domain === "climate"), [allEntities]);
+  const cameraEntity = useMemo(() => allEntities.find((e) => e.domain === "camera"), [allEntities]);
+  const mediaEntity = useMemo(
+    () =>
+      allEntities.find((e) => e.domain === "media_player" && e.state === "playing") ??
+      allEntities.find((e) => e.domain === "media_player"),
+    [allEntities]
+  );
+
   const defaultFocusEntity = useMemo(() => {
-    const climate = allEntities.find((e) => e.domain === "climate");
-    if (climate) return climate;
+    if (climateEntity) return climateEntity;
     if (favoriteEntities.length > 0) return favoriteEntities[0];
     return null;
-  }, [allEntities, favoriteEntities]);
+  }, [climateEntity, favoriteEntities]);
 
   const focusedEntity = useMemo(() => {
     if (focusedEntityId) {
@@ -144,33 +158,47 @@ export default function Home() {
               {view === "home" ? getGreeting() : VIEW_TITLES[view]}
             </h1>
             <p className="text-neutral-500 mt-1">
-              {view === "home" ? summarizeActivity(allEntities) : ""}
+              {view === "home" || view === "rooms" ? summarizeActivity(allEntities) : ""}
             </p>
           </div>
-          <div className="flex items-start gap-4">
-            {data?.weather && (
-              <WeatherCard weather={data.weather} forecast={data.forecast} sun={data.sun} />
+          <div className="flex items-center gap-3">
+            <Clock />
+            {view === "rooms" && (
+              <button
+                onClick={() => setEditing((e) => !e)}
+                className={`rounded-full p-3 transition-colors ${
+                  editing
+                    ? "bg-neutral-100 text-neutral-900"
+                    : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+                }`}
+                aria-label={editing ? "Done editing" : "Edit visible cards"}
+              >
+                {editing ? <Check size={20} /> : <Pencil size={20} />}
+              </button>
             )}
-            <div className="flex items-center gap-3 pt-1">
-              <Clock />
-              {view === "home" && (
-                <button
-                  onClick={() => setEditing((e) => !e)}
-                  className={`rounded-full p-3 transition-colors ${
-                    editing
-                      ? "bg-neutral-100 text-neutral-900"
-                      : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
-                  }`}
-                  aria-label={editing ? "Done editing" : "Edit visible cards"}
-                >
-                  {editing ? <Check size={20} /> : <Pencil size={20} />}
-                </button>
-              )}
-            </div>
           </div>
         </header>
 
-        {view === "energy" && <EnergyView entities={allEntities} />}
+        {view === "home" && (
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(0,0.85fr)] gap-6 items-start">
+            <div className="flex flex-col gap-6 min-w-0">
+              {cameraEntity && <HeroCameraCard camera={cameraEntity} />}
+              <EnergyCard entities={allEntities} />
+            </div>
+
+            <div className="flex flex-col gap-6 min-w-0">
+              {data?.weather && (
+                <WeatherCard weather={data.weather} forecast={data.forecast} sun={data.sun} />
+              )}
+              {mediaEntity && <MediaMiniCard player={mediaEntity} />}
+            </div>
+
+            <div className="flex flex-col gap-6 min-w-0">
+              <FocusPanel entity={climateEntity ?? null} />
+              <MyDeviceGrid entities={favoriteEntities} />
+            </div>
+          </div>
+        )}
 
         {view === "favorites" && (
           <FavoritesView
@@ -184,7 +212,7 @@ export default function Home() {
           <SettingsView hiddenEntities={hiddenEntities} onUnhide={toggleHidden} />
         )}
 
-        {view === "home" && (
+        {view === "rooms" && (
           <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_320px] gap-6 items-start">
             <div className="min-w-0">
               <ScenesRow scenes={data?.scenes ?? []} />
