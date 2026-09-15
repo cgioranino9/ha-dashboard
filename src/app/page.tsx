@@ -187,13 +187,13 @@ export default function Home() {
             </div>
 
             <div className="flex flex-col gap-6 min-w-0">
-              {data?.weather && (
-                <WeatherCard weather={data.weather} forecast={data.forecast} sun={data.sun} />
-              )}
               {mediaEntity && <MediaMiniCard player={mediaEntity} />}
             </div>
 
             <div className="flex flex-col gap-6 min-w-0">
+              {data?.weather && (
+                <WeatherCard weather={data.weather} forecast={data.forecast} sun={data.sun} />
+              )}
               <FocusPanel entity={climateEntity ?? null} />
               <MyDeviceGrid entities={favoriteEntities} />
             </div>
