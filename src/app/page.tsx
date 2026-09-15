@@ -13,7 +13,6 @@ import { FavoriteRow } from "@/components/FavoriteRow";
 import { Sidebar, type DashboardView } from "@/components/Sidebar";
 import { FavoritesView } from "@/components/FavoritesView";
 import { SettingsView } from "@/components/SettingsView";
-import { EnergyCard } from "@/components/EnergyCard";
 import { MyDeviceGrid } from "@/components/MyDeviceGrid";
 import { MediaMiniCard } from "@/components/MediaMiniCard";
 import { isEntityActive } from "@/lib/entityDisplay";
@@ -183,7 +182,29 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(0,0.85fr)] gap-6 items-start">
             <div className="flex flex-col gap-6 min-w-0">
               {cameraEntity && <HeroCameraCard camera={cameraEntity} />}
-              <EnergyCard entities={allEntities} />
+              <ScenesRow scenes={data?.scenes ?? []} />
+              <div className="rounded-[28px] border border-white/5 bg-neutral-900 p-6">
+                <div className="flex items-center gap-2 text-sm font-medium text-neutral-400 mb-4">
+                  <Star size={16} />
+                  Favorites
+                </div>
+                {favoriteEntities.length === 0 ? (
+                  <p className="text-sm text-neutral-600">
+                    Go to Rooms, tap the pencil, then the star on any card to pin it here.
+                  </p>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {favoriteEntities.map((entity) => (
+                      <FavoriteRow
+                        key={entity.entityId}
+                        entity={entity}
+                        selected={focusedEntity?.entityId === entity.entityId}
+                        onSelect={() => setFocusedEntityId(entity.entityId)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex flex-col gap-6 min-w-0">
