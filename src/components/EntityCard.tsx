@@ -5,7 +5,13 @@ import { mutate } from "swr";
 import { ArrowUp, ArrowDown, Square, Minus, Plus, Play, Pause, type LucideIcon } from "lucide-react";
 import type { DashboardEntity } from "@/lib/types";
 import { callService } from "@/lib/useDashboard";
-import { getEntityIcon, isEntityActive, formatEntityValue, getDomainAccent } from "@/lib/entityDisplay";
+import {
+  getEntityIcon,
+  isEntityActive,
+  formatEntityValue,
+  getDomainAccent,
+  getBadgeLabel,
+} from "@/lib/entityDisplay";
 
 const DASHBOARD_KEY = "/api/dashboard";
 
@@ -39,14 +45,26 @@ function selectedRing(domain: string, selected?: boolean) {
   return `ring-2 ring-offset-2 ring-offset-neutral-950 ${getDomainAccent(domain).ring}`;
 }
 
-export function IconBadge({ icon: Icon, active }: { icon: LucideIcon; active: boolean }) {
+export function IconBadge({
+  icon: Icon,
+  active,
+  label,
+}: {
+  icon?: LucideIcon;
+  active: boolean;
+  label?: string;
+}) {
   return (
     <div
       className={`w-10 h-10 rounded-full flex items-center justify-center ${
         active ? "bg-white/20" : "bg-white/5"
       }`}
     >
-      <Icon size={20} strokeWidth={1.75} />
+      {label ? (
+        <span className="text-[10px] font-bold tracking-wide">{label}</span>
+      ) : Icon ? (
+        <Icon size={20} strokeWidth={1.75} />
+      ) : null}
     </div>
   );
 }
@@ -111,14 +129,16 @@ function ToggleCard({ entity, onSelect, selected }: EntityCardProps) {
       className={`${cardShell} text-left ${cardClasses(entity.domain, active)} ${selectedRing(entity.domain, selected)} ${pending ? "opacity-60" : ""}`}
     >
       <div className="flex items-start justify-between">
-        <IconBadge icon={Icon} active={active} />
+        <IconBadge icon={Icon} label={getBadgeLabel(entity)} active={active} />
         <ToggleSwitch on={active} />
       </div>
       <div>
         <div className="font-medium leading-tight">{entity.name}</div>
-        <div className={`text-sm ${active ? "text-white/80" : "text-neutral-500"}`}>
-          {formatEntityValue(entity)}
-        </div>
+        {entity.domain !== "switch" && (
+          <div className={`text-sm ${active ? "text-white/80" : "text-neutral-500"}`}>
+            {formatEntityValue(entity)}
+          </div>
+        )}
       </div>
     </button>
   );

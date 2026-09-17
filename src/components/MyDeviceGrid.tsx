@@ -56,9 +56,13 @@ function DeviceTile({ entity }: { entity: DashboardEntity }) {
       } ${pending ? "opacity-60" : ""}`}
     >
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-semibold tracking-wide uppercase opacity-80">
-          {active ? "On" : "Off"}
-        </span>
+        {entity.domain === "switch" ? (
+          <span className="text-[10px] font-bold tracking-wide">{active ? "ON" : "OFF"}</span>
+        ) : (
+          <span className="text-[10px] font-semibold tracking-wide uppercase opacity-80">
+            {active ? "On" : "Off"}
+          </span>
+        )}
         <div
           className={`w-8 h-4 rounded-full p-0.5 flex items-center transition-colors ${
             active ? "bg-white justify-end" : "bg-white/10 justify-start"
@@ -68,7 +72,7 @@ function DeviceTile({ entity }: { entity: DashboardEntity }) {
         </div>
       </div>
       <div>
-        <TileIcon icon={Icon} />
+        {entity.domain !== "switch" && <TileIcon icon={Icon} />}
         <div className="text-sm font-medium mt-1 truncate">{entity.name}</div>
         <div className={`text-[10px] ${active ? "text-white/70" : "text-neutral-600"}`}>
           {formatSince(entity.lastChanged)}

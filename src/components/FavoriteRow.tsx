@@ -4,7 +4,13 @@ import { useState } from "react";
 import { mutate } from "swr";
 import type { DashboardEntity } from "@/lib/types";
 import { callService } from "@/lib/useDashboard";
-import { getEntityIcon, isEntityActive, formatEntityValue, getDomainAccent } from "@/lib/entityDisplay";
+import {
+  getEntityIcon,
+  isEntityActive,
+  formatEntityValue,
+  getDomainAccent,
+  getBadgeLabel,
+} from "@/lib/entityDisplay";
 import { IconBadge } from "@/components/EntityCard";
 
 const TOGGLE_DOMAINS = new Set(["light", "switch", "fan"]);
@@ -50,10 +56,12 @@ export function FavoriteRow({
           : "bg-neutral-900 border-white/5 hover:bg-neutral-800"
       } ${pending ? "opacity-60" : ""}`}
     >
-      <IconBadge icon={Icon} active={active} />
+      <IconBadge icon={Icon} label={getBadgeLabel(entity)} active={active} />
       <div className="min-w-0 flex-1">
         <div className="font-medium text-sm truncate">{entity.name}</div>
-        <div className="text-xs text-neutral-500 truncate">{formatEntityValue(entity)}</div>
+        {entity.domain !== "switch" && (
+          <div className="text-xs text-neutral-500 truncate">{formatEntityValue(entity)}</div>
+        )}
       </div>
       <span
         className={`w-2.5 h-2.5 rounded-full shrink-0 ${active ? "bg-emerald-400" : "bg-neutral-700"}`}

@@ -20,7 +20,13 @@ import {
 } from "lucide-react";
 import type { DashboardEntity } from "@/lib/types";
 import { callService } from "@/lib/useDashboard";
-import { getEntityIcon, isEntityActive, formatEntityValue, getDomainAccent } from "@/lib/entityDisplay";
+import {
+  getEntityIcon,
+  isEntityActive,
+  formatEntityValue,
+  getDomainAccent,
+  getBadgeLabel,
+} from "@/lib/entityDisplay";
 import { IconBadge } from "@/components/EntityCard";
 
 function refresh() {
@@ -127,10 +133,12 @@ function PanelHeader({ entity }: { entity: DashboardEntity }) {
   const active = isEntityActive(entity);
   return (
     <div className="flex items-center gap-3 mb-6">
-      <IconBadge icon={Icon} active={active} />
+      <IconBadge icon={Icon} label={getBadgeLabel(entity)} active={active} />
       <div>
         <div className="text-xl font-semibold">{entity.name}</div>
-        <div className="text-sm text-neutral-500">{formatEntityValue(entity)}</div>
+        {entity.domain !== "switch" && (
+          <div className="text-sm text-neutral-500">{formatEntityValue(entity)}</div>
+        )}
       </div>
     </div>
   );

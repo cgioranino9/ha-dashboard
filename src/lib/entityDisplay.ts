@@ -182,6 +182,13 @@ export function getDomainAccent(domain: string): DomainAccent {
   return ACCENTS[domain] ?? ACCENTS.switch;
 }
 
+export function getBadgeLabel(entity: DashboardEntity): string | undefined {
+  if (entity.domain === "switch") {
+    return isEntityActive(entity) ? "ON" : "OFF";
+  }
+  return undefined;
+}
+
 export function formatSince(lastChanged: string): string {
   const then = new Date(lastChanged).getTime();
   if (Number.isNaN(then)) return "";
