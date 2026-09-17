@@ -25,13 +25,6 @@ async function run(fn: () => Promise<void>) {
 
 export function getCardSpan(entity: DashboardEntity): string {
   if (entity.domain === "cover" || entity.domain === "climate") return "col-span-2";
-  if (
-    (entity.domain === "light" || entity.domain === "switch" || entity.domain === "fan") &&
-    isEntityActive(entity)
-  ) {
-    return "col-span-2";
-  }
-  if (entity.domain === "media_player" && isEntityActive(entity)) return "col-span-2";
   return "col-span-1";
 }
 
