@@ -69,14 +69,14 @@ export function IconBadge({
   );
 }
 
-function ToggleSwitch({ on }: { on: boolean }) {
+function ToggleSwitch({ on, accentSolid }: { on: boolean; accentSolid: string }) {
   return (
     <div
       className={`w-11 h-6 rounded-full p-0.5 flex items-center transition-colors ${
         on ? "bg-white justify-end" : "bg-neutral-700 justify-start"
       }`}
     >
-      <div className={`w-5 h-5 rounded-full ${on ? "bg-blue-600" : "bg-neutral-300"}`} />
+      <div className={`w-5 h-5 rounded-full ${on ? accentSolid : "bg-neutral-300"}`} />
     </div>
   );
 }
@@ -130,7 +130,7 @@ function ToggleCard({ entity, onSelect, selected }: EntityCardProps) {
     >
       <div className="flex items-start justify-between">
         <IconBadge icon={Icon} label={getBadgeLabel(entity)} active={active} />
-        <ToggleSwitch on={active} />
+        <ToggleSwitch on={active} accentSolid={getDomainAccent(entity.domain).solid} />
       </div>
       <div>
         <div className="font-medium leading-tight">{entity.name}</div>
