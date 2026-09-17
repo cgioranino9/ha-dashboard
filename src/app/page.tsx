@@ -115,6 +115,13 @@ export default function Home() {
       allEntities.find((e) => e.domain === "media_player"),
     [allEntities]
   );
+  const lightSwitchEntities = useMemo(
+    () =>
+      allEntities
+        .filter((e) => e.domain === "light" || e.domain === "switch")
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [allEntities]
+  );
 
   const defaultFocusEntity = useMemo(() => {
     if (climateEntity) return climateEntity;
@@ -208,6 +215,22 @@ export default function Home() {
             </div>
 
             <div className="flex flex-col gap-6 min-w-0">
+              {lightSwitchEntities.length > 0 && (
+                <div className="rounded-[28px] border border-white/5 bg-neutral-900 p-6">
+                  <h2 className="text-sm font-medium text-neutral-400 mb-4">Lights &amp; Switches</h2>
+                  <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-3">
+                    {lightSwitchEntities.map((entity) => (
+                      <div key={entity.entityId} className={getCardSpan(entity)}>
+                        <EntityCard
+                          entity={entity}
+                          selected={focusedEntity?.entityId === entity.entityId}
+                          onSelect={(e) => setFocusedEntityId(e.entityId)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               {mediaEntity && <MediaMiniCard player={mediaEntity} />}
             </div>
 
