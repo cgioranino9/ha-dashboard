@@ -12,6 +12,7 @@ import { FocusPanel } from "@/components/FocusPanel";
 import { FavoriteRow } from "@/components/FavoriteRow";
 import { Sidebar, type DashboardView } from "@/components/Sidebar";
 import { FavoritesView } from "@/components/FavoritesView";
+import { SecurityView } from "@/components/SecurityView";
 import { SettingsView } from "@/components/SettingsView";
 import { MyDeviceGrid } from "@/components/MyDeviceGrid";
 import { MediaMiniCard } from "@/components/MediaMiniCard";
@@ -42,6 +43,7 @@ const SUMMARY_DOMAINS = new Set([
 const VIEW_TITLES: Record<DashboardView, string> = {
   home: "",
   rooms: "Rooms",
+  security: "Security",
   favorites: "Favorites",
   settings: "Settings",
 };
@@ -109,6 +111,7 @@ export default function Home() {
 
   const climateEntity = useMemo(() => allEntities.find((e) => e.domain === "climate"), [allEntities]);
   const cameraEntity = useMemo(() => allEntities.find((e) => e.domain === "camera"), [allEntities]);
+  const cameraEntities = useMemo(() => allEntities.filter((e) => e.domain === "camera"), [allEntities]);
   const mediaEntity = useMemo(
     () =>
       allEntities.find((e) => e.domain === "media_player" && e.state === "playing") ??
@@ -243,6 +246,8 @@ export default function Home() {
             </div>
           </div>
         )}
+
+        {view === "security" && <SecurityView cameras={cameraEntities} />}
 
         {view === "favorites" && (
           <FavoritesView
