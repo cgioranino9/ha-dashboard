@@ -15,7 +15,6 @@ import { FavoritesView } from "@/components/FavoritesView";
 import { SecurityView } from "@/components/SecurityView";
 import { SettingsView } from "@/components/SettingsView";
 import { MyDeviceGrid } from "@/components/MyDeviceGrid";
-import { MediaMiniCard } from "@/components/MediaMiniCard";
 import { isEntityActive } from "@/lib/entityDisplay";
 import type { DashboardEntity } from "@/lib/types";
 
@@ -110,12 +109,6 @@ export default function Home() {
 
   const climateEntity = useMemo(() => allEntities.find((e) => e.domain === "climate"), [allEntities]);
   const cameraEntities = useMemo(() => allEntities.filter((e) => e.domain === "camera"), [allEntities]);
-  const mediaEntity = useMemo(
-    () =>
-      allEntities.find((e) => e.domain === "media_player" && e.state === "playing") ??
-      allEntities.find((e) => e.domain === "media_player"),
-    [allEntities]
-  );
   const lightSwitchEntities = useMemo(
     () =>
       allEntities
@@ -232,7 +225,6 @@ export default function Home() {
                   </div>
                 </div>
               )}
-              {mediaEntity && <MediaMiniCard player={mediaEntity} />}
             </div>
 
             <div className="flex flex-col gap-6 min-w-0">
