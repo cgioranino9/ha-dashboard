@@ -26,10 +26,9 @@ const WeatherCard = dynamic(
   () => import("@/components/WeatherCard").then((m) => m.WeatherCard),
   { ssr: false }
 );
-const HeroCameraCard = dynamic(
-  () => import("@/components/HeroCameraCard").then((m) => m.HeroCameraCard),
-  { ssr: false }
-);
+const CameraGrid = dynamic(() => import("@/components/CameraGrid").then((m) => m.CameraGrid), {
+  ssr: false,
+});
 
 const SUMMARY_DOMAINS = new Set([
   "light",
@@ -110,7 +109,6 @@ export default function Home() {
   );
 
   const climateEntity = useMemo(() => allEntities.find((e) => e.domain === "climate"), [allEntities]);
-  const cameraEntity = useMemo(() => allEntities.find((e) => e.domain === "camera"), [allEntities]);
   const cameraEntities = useMemo(() => allEntities.filter((e) => e.domain === "camera"), [allEntities]);
   const mediaEntity = useMemo(
     () =>
@@ -191,7 +189,7 @@ export default function Home() {
         {view === "home" && (
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_minmax(0,0.85fr)] gap-6 items-start">
             <div className="flex flex-col gap-6 min-w-0">
-              {cameraEntity && <HeroCameraCard camera={cameraEntity} />}
+              <CameraGrid cameras={cameraEntities} />
               <ScenesRow scenes={data?.scenes ?? []} />
               <div className="rounded-[28px] border border-white/5 bg-neutral-900 p-6">
                 <div className="flex items-center gap-2 text-sm font-medium text-neutral-400 mb-4">

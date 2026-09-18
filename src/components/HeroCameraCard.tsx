@@ -1,19 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { Video } from "lucide-react";
 import type { DashboardEntity } from "@/lib/types";
+import { useCameraFeed } from "@/lib/useCameraFeed";
 
 export function HeroCameraCard({ camera }: { camera: DashboardEntity }) {
-  const objectId = camera.entityId.split(".")[1];
-  const [src, setSrc] = useState(`/api/camera/${objectId}`);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      setSrc(`/api/camera/${objectId}?t=${Date.now()}`);
-    }, 10000);
-    return () => clearInterval(id);
-  }, [objectId]);
+  const src = useCameraFeed(camera.entityId);
 
   return (
     <div className="relative rounded-[28px] overflow-hidden h-56 bg-neutral-900 border border-white/5">
